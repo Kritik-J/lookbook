@@ -81,31 +81,6 @@ export default function Look({
     }, 100);
   }, [isPlaying, currentMedia, currentMediaIndex, totalMedia, onMediaChange]);
 
-  // Handle video progress
-  const handleVideoTimeUpdate = () => {
-    if (videoRef.current && currentMedia.type === "video") {
-      const video = videoRef.current;
-      const progressPercent = (video.currentTime / video.duration) * 100;
-      setProgress(progressPercent);
-    }
-  };
-
-  const handleVideoEnded = () => {
-    if (currentMediaIndex < totalMedia - 1) {
-      onMediaChange(currentMediaIndex + 1);
-    } else {
-      onMediaChange("next-look");
-    }
-  };
-
-  const handleVideoPlay = () => {
-    setIsPlaying(true);
-  };
-
-  const handleVideoPause = () => {
-    setIsPlaying(false);
-  };
-
   // Handle image progress
   useEffect(() => {
     if (currentMedia.type === "image") {
@@ -197,8 +172,34 @@ export default function Look({
     }
   };
 
+  const handleVideoPlay = () => {
+    setIsPlaying(true);
+  };
+
+  const handleVideoPause = () => {
+    setIsPlaying(false);
+  };
+
   const handleMuteToggle = () => {
     setIsMuted(!isMuted);
+  };
+
+  // Handle video progress
+  const handleVideoTimeUpdate = () => {
+    if (videoRef.current && currentMedia.type === "video") {
+      const video = videoRef.current;
+      const progressPercent = (video.currentTime / video.duration) * 100;
+      setProgress(progressPercent);
+    }
+  };
+
+  const handleVideoEnded = () => {
+    console.log("Video ended, moving to next media");
+    if (currentMediaIndex < totalMedia - 1) {
+      onMediaChange(currentMediaIndex + 1);
+    } else {
+      onMediaChange("next-look");
+    }
   };
 
   return (
