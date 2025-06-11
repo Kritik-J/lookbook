@@ -1,5 +1,8 @@
+import LookBook from "./components/look-book";
+import { LOOKS } from "./utils/data";
+
 function App() {
-  return <h1 class="text-3xl font-bold underline text-red-400">Lookbook</h1>;
+  return <LookBook looks={LOOKS} />;
 }
 
 export default App;
