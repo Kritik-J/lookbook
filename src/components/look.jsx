@@ -1,4 +1,10 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 import ProductSection from "./product-section";
 
@@ -14,6 +20,9 @@ export default function Look({
   const [isMuted, setIsMuted] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
+  const progressInterval = useRef();
+  const videoRef = useRef(null);
+
   const currentMedia = useMemo(
     () => look.media[currentMediaIndex],
     [currentMediaIndex, look.media]
@@ -21,11 +30,63 @@ export default function Look({
 
   const totalMedia = useMemo(() => look.media.length, [look.media]);
 
-  const videoRef = useRef(null);
+  const products = useMemo(() => {
+    const products =
+      currentMedia?.annotations.flatMap((annotation) => annotation?.product) ||
+      [];
 
+    return products;
+  }, [currentMedia?.annotations]);
+
+  const handleAnnotationClick = (e, annotation) => {
+    e.stopPropagation();
+    setSelectedProduct(annotation.product);
+  };
+
+  const resetProgress = useCallback(() => {
+    setProgress(0);
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+    }
+  }, []);
+
+  const startProgress = useCallback(() => {
+    if (!isPlaying) return;
+
+    resetProgress();
+
+    if (currentMedia.type === "video") {
+      // For videos, we'll track the actual video progress
+      return;
+    }
+
+    // For images, use 5-second timer
+    const duration = 5000;
+    const increment = 100 / (duration / 100);
+
+    progressInterval.current = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          // Auto advance to next media
+          if (currentMediaIndex < totalMedia - 1) {
+            onMediaChange(currentMediaIndex + 1);
+          } else {
+            // Signal to parent to move to next look
+            onMediaChange("next-look");
+          }
+          return 0;
+        }
+        return prev + increment;
+      });
+    }, 100);
+  }, [isPlaying, currentMedia, currentMediaIndex, totalMedia, onMediaChange]);
+
+  // Handle video progress
   const handleVideoTimeUpdate = () => {
-    if (videoRef.current) {
-      setProgress(videoRef.current.currentTime / videoRef.current.duration);
+    if (videoRef.current && currentMedia.type === "video") {
+      const video = videoRef.current;
+      const progressPercent = (video.currentTime / video.duration) * 100;
+      setProgress(progressPercent);
     }
   };
 
@@ -37,28 +98,108 @@ export default function Look({
     }
   };
 
-  const handlePlayPause = (e) => {
-    e.stopPropagation();
-    setIsPlaying(!isPlaying);
+  const handleVideoPlay = () => {
+    setIsPlaying(true);
   };
 
-  const handleMuteToggle = (e) => {
-    e.stopPropagation();
+  const handleVideoPause = () => {
+    setIsPlaying(false);
+  };
+
+  // Handle image progress
+  useEffect(() => {
+    if (currentMedia.type === "image") {
+      startProgress();
+    } else {
+      resetProgress();
+    }
+
+    return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
+    };
+  }, [startProgress, currentMedia.type]);
+
+  // Handle video initialization when media changes
+  useEffect(() => {
+    if (videoRef.current && currentMedia.type === "video") {
+      const video = videoRef.current;
+
+      // Reset video to beginning
+      video.currentTime = 0;
+      video.muted = isMuted;
+
+      // Start playing if active and should be playing
+      if (isPlaying) {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.log("Autoplay prevented:", error);
+            setIsPlaying(false);
+          });
+        }
+      } else {
+        video.pause();
+      }
+    }
+  }, [currentMediaIndex, currentMedia]);
+
+  // Handle play/pause state changes
+  useEffect(() => {
+    if (videoRef.current && currentMedia.type === "video") {
+      const video = videoRef.current;
+
+      if (isPlaying) {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.log("Play failed:", error);
+            setIsPlaying(false);
+          });
+        }
+      } else {
+        video.pause();
+      }
+    }
+  }, [isPlaying, currentMedia.type]);
+
+  // Handle mute state changes
+  useEffect(() => {
+    if (videoRef.current && currentMedia.type === "video") {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted, currentMedia.type]);
+
+  const handlePlayPause = () => {
+    if (currentMedia.type === "video" && videoRef.current) {
+      const video = videoRef.current;
+
+      if (isPlaying) {
+        video.pause();
+        setIsPlaying(false);
+      } else {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch((error) => {
+              console.log("Play failed:", error);
+              setIsPlaying(false);
+            });
+        }
+      }
+    } else {
+      // For images, just toggle the state
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleMuteToggle = () => {
     setIsMuted(!isMuted);
   };
-
-  const handleAnnotationClick = (e, annotation) => {
-    e.stopPropagation();
-    setSelectedProduct(annotation.product);
-  };
-
-  const products = useMemo(() => {
-    const products =
-      currentMedia?.annotations.flatMap((annotation) => annotation?.product) ||
-      [];
-
-    return products;
-  }, [currentMedia?.annotations]);
 
   return (
     <div className="relative h-full w-full grid grid-rows-[1fr_auto]">
@@ -116,6 +257,7 @@ export default function Look({
               <button
                 className="text-white hover:bg-white/20 rounded-full p-1 h-8 w-8 flex items-center justify-center hover:scale-110 transition-all duration-300"
                 onClick={handlePlayPause}
+                type="button"
               >
                 {isPlaying ? (
                   <Pause className="h-4 w-4" />
@@ -127,6 +269,7 @@ export default function Look({
               <button
                 className="text-white hover:bg-white/20 rounded-full p-1 h-8 w-8 flex items-center justify-center hover:scale-110 transition-all duration-300"
                 onClick={handleMuteToggle}
+                type="button"
               >
                 {isMuted ? (
                   <VolumeX className="h-4 w-4" />
@@ -145,6 +288,7 @@ export default function Look({
               src={currentMedia.url}
               alt={look.title}
               className="w-full h-full object-cover"
+              loading="eager"
             />
           ) : (
             <video
@@ -153,6 +297,8 @@ export default function Look({
               className="w-full h-full object-cover"
               onTimeUpdate={handleVideoTimeUpdate}
               onEnded={handleVideoEnded}
+              onPlay={handleVideoPlay}
+              onPause={handleVideoPause}
               playsInline
               muted={isMuted}
               loop={false}
@@ -160,6 +306,7 @@ export default function Look({
           )}
         </div>
 
+        {/* Annotations for images */}
         {currentMedia.annotations &&
           currentMedia.type === "image" &&
           currentMedia.annotations.map((annotation) => (
@@ -171,6 +318,7 @@ export default function Look({
                 top: `${annotation.y}%`,
               }}
               onClick={(e) => handleAnnotationClick(e, annotation)}
+              type="button"
             >
               <div className="w-2 h-2 bg-yellow-800 rounded-full" />
             </button>
@@ -178,14 +326,18 @@ export default function Look({
 
         {/* Click areas - moved below media and buttons */}
         <div className="absolute inset-0 z-10 flex pointer-events-none">
-          {/* Left click area */}
-          <div className="w-1/2 h-full pointer-events-auto" onClick={onPrev} />
-          {/* Right click area */}
-          <div className="w-1/2 h-full pointer-events-auto" onClick={onNext} />
+          <div
+            className="w-1/2 h-full pointer-events-auto cursor-pointer"
+            onClick={onPrev}
+          />
+          <div
+            className="w-1/2 h-full pointer-events-auto cursor-pointer"
+            onClick={onNext}
+          />
         </div>
       </div>
 
-      {/* Show all the products across all annotations then selected should be in view */}
+      {/* Product section */}
       {products?.length > 0 && (
         <ProductSection products={products} selectedProduct={selectedProduct} />
       )}

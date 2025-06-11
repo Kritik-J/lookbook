@@ -67,6 +67,13 @@ export const LOOKS = [
       },
       {
         id: "1-2",
+        type: "video",
+        url: "/video.mp4",
+        duration: 7,
+        annotations: [],
+      },
+      {
+        id: "1-3",
         type: "image",
         url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&h=600&fit=crop",
         annotations: [
@@ -96,8 +103,8 @@ export const LOOKS = [
       {
         id: "2-2",
         type: "video",
-        url: "https://videos.pexels.com/video-files/2795396/2795396-uhd_1440_2560_25fps.mp4",
-        duration: 12,
+        url: "/video.mp4",
+        duration: 7,
         annotations: [],
       },
     ],

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import Look from "./look";
+import { ArrowDown, ArrowUp } from "lucide-react";
 
 export default function LookBook({ looks }) {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
@@ -76,6 +77,21 @@ export default function LookBook({ looks }) {
         onPrev={handlePrevious}
         onMediaChange={handleMediaChange}
       />
+
+      <div className="absolute top-1/2 -translate-y-1/2 right-0 flex flex-col items-end justify-center gap-4 mr-4 z-50">
+        <button
+          className="text-white hover:bg-white/20 rounded-full p-1 h-8 w-8 flex items-center justify-center hover:scale-110 transition-all duration-300"
+          onClick={handlePrevLook}
+        >
+          <ArrowUp className="w-10 h-10" />
+        </button>
+        <button
+          className="text-white hover:bg-white/20 rounded-full p-1 h-8 w-8 flex items-center justify-center hover:scale-110 transition-all duration-300"
+          onClick={handleNextLook}
+        >
+          <ArrowDown className="w-10 h-10" />
+        </button>
+      </div>
     </div>
   );
 }
