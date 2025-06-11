@@ -19,6 +19,7 @@ export default function Look({
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [annotationClicked, setAnnotationClicked] = useState(false);
 
   const progressInterval = useRef();
   const videoRef = useRef(null);
@@ -41,6 +42,7 @@ export default function Look({
   const handleAnnotationClick = (e, annotation) => {
     e.stopPropagation();
     setSelectedProduct(annotation.product);
+    setAnnotationClicked(true);
   };
 
   const resetProgress = useCallback(() => {
@@ -80,6 +82,12 @@ export default function Look({
       });
     }, 100);
   }, [isPlaying, currentMedia, currentMediaIndex, totalMedia, onMediaChange]);
+
+  // Reset annotation clicked state when media changes
+  useEffect(() => {
+    setAnnotationClicked(false);
+    setSelectedProduct(null);
+  }, [currentMediaIndex]);
 
   // Handle image progress
   useEffect(() => {
@@ -339,7 +347,7 @@ export default function Look({
       </div>
 
       {/* Product section */}
-      {products?.length > 0 && (
+      {annotationClicked && products?.length > 0 && (
         <ProductSection products={products} selectedProduct={selectedProduct} />
       )}
     </div>
