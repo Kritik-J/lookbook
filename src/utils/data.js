@@ -72,15 +72,6 @@ export const LOOKS = [
         duration: 7,
         annotations: [],
       },
-      {
-        id: "1-3",
-        type: "image",
-        url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&h=600&fit=crop",
-        annotations: [
-          { id: "a4", x: 40, y: 30, product: PRODUCTS[2] },
-          { id: "a5", x: 50, y: 70, product: PRODUCTS[4] },
-        ],
-      },
     ],
   },
   {
